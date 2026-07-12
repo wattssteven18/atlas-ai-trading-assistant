@@ -59,6 +59,7 @@
   </div>
 
   <script>
+   
     function speak(text) {
       speechSynthesis.cancel();
       const voice = new SpeechSynthesisUtterance(text);
@@ -72,7 +73,8 @@
       addMessage("Atlas", text);
       speak(text);
     }
-async function askAtlas() {
+
+    async function askAtlas() {
   const input = document.getElementById("question");
   const question = input.value.trim();
 
