@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atlas AI</title>
+  <style>
+    body {
+      background: #07111f;
+      color: white;
+      font-family: Arial;
+      padding: 25px;
+      text-align: center;
+    }
+
+    button, input {
+      padding: 14px;
+      margin: 8px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+    }
+
+    button {
+      background: #20c997;
+      color: black;
+      font-weight: bold;
+    }
+
+    input {
+      width: 80%;
+    }
+
+    #chat {
+      background: #101d2d;
+      padding: 15px;
+      border-radius: 12px;
+      min-height: 180px;
+      text-align: left;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>ATLAS AI</h1>
+  <p>Steven's Personal Trading Assistant</p>
+
+  <button onclick="speakWelcome()">🔊 Hear Atlas</button>
+  <button onclick="listen()">🎙️ Talk to Atlas</button>
+
+  <br>
+
+  <input id="question" placeholder="Ask Atlas something">
+  <button onclick="askAtlas()">Send</button>
+
+  <div id="chat">
+    <p><b>Atlas:</b> Hello Steven. I am online and ready.</p>
+  </div>
+
+  <script>
+    function speak(text) {
+      speechSynthesis.cancel();
+      const voice = new SpeechSynthesisUtterance(text);
+      voice.rate = 0.9;
+      voice.pitch = 1.1;
+      speechSynthesis.speak(voice);
+    }
+
+    function speakWelcome() {
+      const text = "Hello Steven. Atlas is online and ready to analyze your watchlist.";
+      addMessage("Atlas", text);
+      speak(text);
+    }
+
+    function askAtlas() {
+      const input = document.getElementById("question");
+      const question = input.value.trim();
+
+      if (!question) return;
+
+      addMessage("Steven", question);
+
+      let reply = "I heard your question. My live market data and full artificial intelligence connection will be added next.";
+
+      if (question.toLowerCase().includes("watchlist")) {
+        reply = "Your watchlist includes Micron, Nvidia, Strategy, SanDisk, Bitcoin, and Solana.";
+      }
+
+      if (question.toLowerCase().includes("formula")) {
+        reply = "Your formula divides estimated revenue by shares outstanding, then applies twenty, thirty, and forty times multiples.";
+      }
+
+      addMessage("Atlas", reply);
+      speak(reply);
+      input.value = "";
+    }
+
+    function addMessage(name, text) {
+      const chat = document.getElementById("chat");
+      chat.innerHTML += "<p><b>" + name + ":</b> " + text + "</p>";
+    }
+
+    function listen() {
+      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!Recognition) {
+        alert("Voice recognition is not supported in this browser.");
+        return;
+      }
+
+      const recognition = new Recognition();
+      recognition.lang = "en-US";
+
+      recognition.onresult = function(event) {
+        document.getElementById("question").value =
+          event.results[0][0].transcript;
+
+        askAtlas();
+      };
+
+      recognition.start();
+    }
+  </script>
+
+</body>
+</html>
