@@ -3,16 +3,18 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Atlas AI</title>
+
   <style>
     body {
       background: #07111f;
       color: white;
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       padding: 25px;
       text-align: center;
     }
 
-    button, input {
+    button,
+    input {
       padding: 14px;
       margin: 8px;
       border-radius: 10px;
@@ -24,10 +26,17 @@
       background: #20c997;
       color: black;
       font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     input {
       width: 80%;
+      max-width: 650px;
     }
 
     #chat {
@@ -36,7 +45,9 @@
       border-radius: 12px;
       min-height: 180px;
       text-align: left;
-      margin-top: 20px;
+      margin: 20px auto 0;
+      max-width: 750px;
+      overflow-wrap: anywhere;
     }
   </style>
 </head>
@@ -51,98 +62,145 @@
 
   <br>
 
-  <input id="question" placeholder="Ask Atlas something">
-  <button onclick="askAtlas()">Send</button>
+  <input
+    id="question"
+    placeholder="Ask Atlas something"
+    onkeydown="handleEnter(event)"
+  >
+
+  <button id="sendButton" onclick="askAtlas()">Send</button>
 
   <div id="chat">
     <p><b>Atlas:</b> Hello Steven. I am online and ready.</p>
   </div>
 
   <script>
-   
     function speak(text) {
-      speechSynthesis.cancel();
-      const voice = new SpeechSynthesisUtterance(text);
-      voice.rate = 0.9;
-      voice.pitch = 1.1;
-      speechSynthesis.speak(voice);
+      window.speechSynthesis.cancel();
+
+      const speech = new SpeechSynthesisUtterance(text);
+      speech.rate = 0.9;
+      speech.pitch = 1.1;
+
+      const voices = window.speechSynthesis.getVoices();
+
+      const femaleVoice = voices.find(function(voice) {
+        const name = voice.name.toLowerCase();
+
+        return (
+          name.includes("female") ||
+          name.includes("samantha") ||
+          name.includes("zira") ||
+          name.includes("victoria") ||
+          name.includes("google us english")
+        );
+      });
+
+      if (femaleVoice) {
+        speech.voice = femaleVoice;
+      }
+
+      window.speechSynthesis.speak(speech);
     }
 
     function speakWelcome() {
-      const text = "Hello Steven. Atlas is online and ready to analyze your watchlist.";
+      const text =
+        "Hello Steven. Atlas is online and ready to analyze your watchlist.";
+
       addMessage("Atlas", text);
       speak(text);
     }
 
     async function askAtlas() {
-  const input = document.getElementById("question");
-  const question = input.value.trim();
+      const input = document.getElementById("question");
+      const sendButton = document.getElementById("sendButton");
+      const question = input.value.trim();
 
-  if (!question) return;
+      if (!question) {
+        return;
+      }
 
-  addMessage("Steven", question);
-  input.value = "";
+      addMessage("Steven", question);
 
-  addMessage("Atlas", "Thinking...");
-
-  try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: question
-      })
-    });
-
-    const data = await response.json();
-
-    // Remove the temporary "Thinking..." message
-    const chat = document.getElementById("chat");
-    chat.lastElementChild.remove();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Atlas could not connect.");
-    }
-
-    const reply = data.reply || "I did not receive a response.";
-
-    addMessage("Atlas", reply);
-    speak(reply);
-
-  } catch (error) {
-    const chat = document.getElementById("chat");
-
-    if (
-      chat.lastElementChild &&
-      chat.lastElementChild.textContent.includes("Thinking...")
-    ) {
-      chat.lastElementChild.remove();
-    }
-
-    const errorMessage =
-      "I could not connect to my AI brain. Please check the connection and try again.";
-
-    addMessage("Atlas", errorMessage);
-    speak(errorMessage);
-
-    console.error(error);
-  }
-}
-
-      addMessage("Atlas", reply);
-      speak(reply);
       input.value = "";
+      sendButton.disabled = true;
+
+      const thinkingMessage = addMessage("Atlas", "Thinking...");
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: question
+          })
+        });
+
+        let data;
+
+        try {
+          data = await response.json();
+        } catch {
+          throw new Error("The server returned an invalid response.");
+        }
+
+        thinkingMessage.remove();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+            data.details ||
+            "Atlas could not connect."
+          );
+        }
+
+        const reply =
+          data.reply ||
+          "I did not receive a response from my AI brain.";
+
+        addMessage("Atlas", reply);
+        speak(reply);
+
+      } catch (error) {
+        if (thinkingMessage.isConnected) {
+          thinkingMessage.remove();
+        }
+
+        const errorMessage =
+          "I could not connect to my AI brain. Please check the connection and try again.";
+
+        addMessage("Atlas", errorMessage);
+        speak(errorMessage);
+
+        console.error("Atlas error:", error);
+
+      } finally {
+        sendButton.disabled = false;
+        input.focus();
+      }
     }
 
     function addMessage(name, text) {
       const chat = document.getElementById("chat");
-      chat.innerHTML += "<p><b>" + name + ":</b> " + text + "</p>";
+      const paragraph = document.createElement("p");
+      const label = document.createElement("b");
+
+      label.textContent = name + ": ";
+      paragraph.appendChild(label);
+      paragraph.appendChild(document.createTextNode(text));
+
+      chat.appendChild(paragraph);
+      chat.scrollTop = chat.scrollHeight;
+
+      return paragraph;
     }
 
     function listen() {
-      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const Recognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
 
       if (!Recognition) {
         alert("Voice recognition is not supported in this browser.");
@@ -150,70 +208,34 @@
       }
 
       const recognition = new Recognition();
+
       recognition.lang = "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
       recognition.onresult = function(event) {
-        document.getElementById("question").value =
+        const transcript =
           event.results[0][0].transcript;
 
-        async function askAtlas() {
-  const input = document.getElementById("question");
-  const question = input.value.trim();
+        document.getElementById("question").value = transcript;
+        askAtlas();
+      };
 
-  if (!question) return;
+      recognition.onerror = function(event) {
+        console.error("Voice recognition error:", event.error);
 
-  addMessage("Steven", question);
-  input.value = "";
-
-  addMessage("Atlas", "Thinking...");
-
-  try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: question
-      })
-    });
-
-    const data = await response.json();
-
-    // Remove the temporary "Thinking..." message
-    const chat = document.getElementById("chat");
-    chat.lastElementChild.remove();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Atlas could not connect.");
-    }
-
-    const reply = data.reply || "I did not receive a response.";
-
-    addMessage("Atlas", reply);
-    speak(reply);
-
-  } catch (error) {
-    const chat = document.getElementById("chat");
-
-    if (
-      chat.lastElementChild &&
-      chat.lastElementChild.textContent.includes("Thinking...")
-    ) {
-      chat.lastElementChild.remove();
-    }
-
-    const errorMessage =
-      "I could not connect to my AI brain. Please check the connection and try again.";
-
-    addMessage("Atlas", errorMessage);
-    speak(errorMessage);
-
-    console.error(error);
-  }
-};
+        alert(
+          "Atlas could not hear you. Please allow microphone access and try again."
+        );
+      };
 
       recognition.start();
+    }
+
+    function handleEnter(event) {
+      if (event.key === "Enter") {
+        askAtlas();
+      }
     }
   </script>
 
