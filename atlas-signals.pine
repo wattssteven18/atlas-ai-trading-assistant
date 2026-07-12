@@ -1,0 +1,32 @@
+//@version=6
+indicator("ATLAS RSI MACD SMA Signals", overlay=true)
+
+rsiLength = input.int(14, "RSI Length", minval=2)
+fastLength = input.int(12, "MACD Fast", minval=1)
+slowLength = input.int(26, "MACD Slow", minval=2)
+signalLength = input.int(9, "MACD Signal", minval=1)
+
+sma20 = ta.sma(close, 20)
+sma50 = ta.sma(close, 50)
+sma200 = ta.sma(close, 200)
+rsiValue = ta.rsi(close, rsiLength)
+[macdLine, signalLine, histogram] = ta.macd(close, fastLength, slowLength, signalLength)
+
+plot(sma20, "SMA 20", linewidth=2)
+plot(sma50, "SMA 50", linewidth=2)
+plot(sma200, "SMA 200", linewidth=2)
+
+bullish = close > sma20 and sma20 > sma50 and macdLine > signalLine and rsiValue > 50 and rsiValue < 70
+bearish = close < sma20 and sma20 < sma50 and macdLine < signalLine and rsiValue < 50
+
+plotshape(bullish and not bullish[1], title="ATLAS Bullish", style=shape.labelup, location=location.belowbar, text="ATLAS BUY", size=size.tiny)
+plotshape(bearish and not bearish[1], title="ATLAS Bearish", style=shape.labeldown, location=location.abovebar, text="ATLAS RISK", size=size.tiny)
+
+alertcondition(bullish and not bullish[1], "ATLAS Bullish Signal", "ATLAS bullish signal")
+alertcondition(bearish and not bearish[1], "ATLAS Bearish Signal", "ATLAS bearish signal")
+
+if bullish and not bullish[1]
+    alert('{"symbol":"' + syminfo.tickerid + '","timeframe":"' + timeframe.period + '","signal":"BULLISH","price":' + str.tostring(close) + ',"rsi":' + str.tostring(rsiValue) + ',"macd":' + str.tostring(macdLine) + ',"macdSignal":' + str.tostring(signalLine) + ',"sma20":' + str.tostring(sma20) + ',"sma50":' + str.tostring(sma50) + ',"sma200":' + str.tostring(sma200) + '}', alert.freq_once_per_bar_close)
+
+if bearish and not bearish[1]
+    alert('{"symbol":"' + syminfo.tickerid + '","timeframe":"' + timeframe.period + '","signal":"BEARISH","price":' + str.tostring(close) + ',"rsi":' + str.tostring(rsiValue) + ',"macd":' + str.tostring(macdLine) + ',"macdSignal":' + str.tostring(signalLine) + ',"sma20":' + str.tostring(sma20) + ',"sma50":' + str.tostring(sma50) + ',"sma200":' + str.tostring(sma200) + '}', alert.freq_once_per_bar_close)

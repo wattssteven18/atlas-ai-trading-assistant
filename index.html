@@ -1,885 +1,134 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#020807" />
-  <title>Atlas — Steven's AI Trading Assistant</title>
-
-  <style>
-    :root {
-      --bg: #020807;
-      --panel: rgba(4, 20, 18, 0.82);
-      --panel-2: rgba(5, 28, 24, 0.75);
-      --line: rgba(38, 255, 198, 0.22);
-      --accent: #25f5c4;
-      --accent-2: #45a7ff;
-      --text: #e9fffa;
-      --muted: #8da9a3;
-      --danger: #ff667a;
-      --warning: #ffc65c;
-      --shadow: 0 0 28px rgba(37, 245, 196, 0.14);
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      background:
-        radial-gradient(circle at 20% 10%, rgba(37,245,196,.10), transparent 30%),
-        radial-gradient(circle at 85% 15%, rgba(69,167,255,.10), transparent 28%),
-        linear-gradient(180deg, #010504 0%, #030b09 50%, #010403 100%);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    body { overflow-x: hidden; }
-
-    .stars, .stars::before, .stars::after {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      content: "";
-      background-image:
-        radial-gradient(circle, rgba(255,255,255,.62) 0 1px, transparent 1.4px),
-        radial-gradient(circle, rgba(37,245,196,.5) 0 1px, transparent 1.3px);
-      background-size: 90px 90px, 140px 140px;
-      background-position: 10px 20px, 45px 70px;
-      opacity: .16;
-      animation: drift 28s linear infinite;
-    }
-
-    .stars::before {
-      transform: scale(1.35);
-      opacity: .12;
-      animation-duration: 42s;
-    }
-
-    .stars::after {
-      transform: scale(.8);
-      opacity: .1;
-      animation-duration: 20s;
-    }
-
-    @keyframes drift {
-      from { transform: translateY(0); }
-      to { transform: translateY(-120px); }
-    }
-
-    .app {
-      width: min(1500px, 100%);
-      margin: 0 auto;
-      padding: 18px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .topbar {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border: 1px solid var(--line);
-      background: rgba(1, 10, 8, .82);
-      backdrop-filter: blur(14px);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      position: sticky;
-      top: 10px;
-      z-index: 10;
-    }
-
-    .brand-wrap {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      min-width: 0;
-    }
-
-    .mini-orb {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 2px solid var(--accent);
-      box-shadow: 0 0 18px rgba(37,245,196,.62), inset 0 0 14px rgba(37,245,196,.28);
-      display: grid;
-      place-items: center;
-      flex: 0 0 auto;
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    .mini-orb::after {
-      content: "";
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 15px var(--accent);
-    }
-
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); filter: brightness(1); }
-      50% { transform: scale(1.045); filter: brightness(1.25); }
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: clamp(20px, 4vw, 32px);
-      letter-spacing: .08em;
-      color: var(--accent);
-      text-shadow: 0 0 16px rgba(37,245,196,.45);
-    }
-
-    .brand p {
-      margin: 2px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .top-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    button, input, textarea, select {
-      font: inherit;
-    }
-
-    .btn {
-      border: 1px solid var(--line);
-      background: rgba(10, 38, 32, .82);
-      color: var(--text);
-      border-radius: 12px;
-      padding: 10px 13px;
-      cursor: pointer;
-      transition: .18s ease;
-    }
-
-    .btn:hover, .btn:focus {
-      border-color: rgba(37,245,196,.7);
-      box-shadow: 0 0 18px rgba(37,245,196,.14);
-      outline: none;
-    }
-
-    .btn.primary {
-      background: linear-gradient(135deg, rgba(37,245,196,.24), rgba(69,167,255,.18));
-      border-color: rgba(37,245,196,.52);
-    }
-
-    .status-dot {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      color: var(--muted);
-      font-size: 13px;
-      white-space: nowrap;
-    }
-
-    .status-dot::before {
-      content: "";
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 12px var(--accent);
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 1.05fr 1.4fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .column {
-      display: grid;
-      gap: 16px;
-      align-content: start;
-    }
-
-    .card {
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: linear-gradient(180deg, rgba(6, 24, 21, .86), rgba(2, 12, 10, .82));
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-      overflow: hidden;
-    }
-
-    .card-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .card-head h2 {
-      margin: 0;
-      font-size: 15px;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-
-    .card-body { padding: 15px; }
-
-    .hero {
-      min-height: 310px;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      padding: 28px 18px;
-      position: relative;
-    }
-
-    .hero-orb {
-      width: 175px;
-      height: 175px;
-      border-radius: 50%;
-      border: 2px solid var(--accent);
-      display: grid;
-      place-items: center;
-      margin: 12px auto 22px;
-      box-shadow:
-        0 0 18px rgba(37,245,196,.6),
-        0 0 60px rgba(37,245,196,.2),
-        inset 0 0 34px rgba(37,245,196,.18);
-      position: relative;
-      animation: pulse 2.4s ease-in-out infinite;
-    }
-
-    .hero-orb::before,
-    .hero-orb::after {
-      content: "";
-      position: absolute;
-      border-radius: 50%;
-      border: 1px solid rgba(37,245,196,.22);
-    }
-
-    .hero-orb::before { inset: -14px; }
-    .hero-orb::after { inset: 24px; border-color: rgba(69,167,255,.36); }
-
-    .orb-core {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: radial-gradient(circle, white 0 4%, var(--accent) 18%, rgba(37,245,196,.08) 64%, transparent 70%);
-      box-shadow: 0 0 25px var(--accent);
-    }
-
-    .hero h2 {
-      margin: 0;
-      font-size: 28px;
-      color: var(--accent);
-    }
-
-    .hero p {
-      margin: 8px auto 0;
-      color: var(--muted);
-      max-width: 540px;
-    }
-
-    .voice-state {
-      margin-top: 14px;
-      font-size: 14px;
-      color: var(--accent);
-      min-height: 20px;
-    }
-
-    .chat-log {
-      height: 400px;
-      overflow-y: auto;
-      padding: 14px;
-      scroll-behavior: smooth;
-    }
-
-    .message {
-      max-width: 88%;
-      margin: 9px 0;
-      padding: 11px 13px;
-      border-radius: 14px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .message.user {
-      margin-left: auto;
-      background: rgba(69,167,255,.14);
-      border: 1px solid rgba(69,167,255,.28);
-    }
-
-    .message.atlas {
-      background: rgba(37,245,196,.10);
-      border: 1px solid rgba(37,245,196,.24);
-    }
-
-    .message.system {
-      max-width: 100%;
-      text-align: center;
-      color: var(--muted);
-      background: transparent;
-      border: 0;
-      font-size: 12px;
-    }
-
-    .composer {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 8px;
-      padding: 12px;
-      border-top: 1px solid var(--line);
-    }
-
-    .composer input {
-      width: 100%;
-      min-width: 0;
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,.25);
-      color: var(--text);
-      border-radius: 12px;
-      padding: 12px 13px;
-      outline: none;
-    }
-
-    .composer input:focus { border-color: rgba(37,245,196,.65); }
-
-    .watchlist {
-      display: grid;
-      gap: 8px;
-    }
-
-    .ticker {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
-      padding: 11px 12px;
-      border: 1px solid rgba(37,245,196,.14);
-      background: rgba(0,0,0,.18);
-      border-radius: 12px;
-    }
-
-    .ticker strong { display: block; }
-    .ticker span { color: var(--muted); font-size: 12px; }
-    .ticker .price { text-align: right; color: var(--accent); }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0,1fr));
-      gap: 10px;
-    }
-
-    label {
-      display: grid;
-      gap: 6px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    input[type="number"], input[type="text"], select {
-      width: 100%;
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,.24);
-      color: var(--text);
-      border-radius: 10px;
-      padding: 10px 11px;
-      outline: none;
-    }
-
-    .valuation-result {
-      margin-top: 12px;
-      padding: 14px;
-      border: 1px solid rgba(37,245,196,.24);
-      border-radius: 13px;
-      background: rgba(37,245,196,.07);
-    }
-
-    .valuation-result strong {
-      font-size: 26px;
-      color: var(--accent);
-    }
-
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .metric {
-      padding: 12px;
-      border: 1px solid rgba(37,245,196,.14);
-      border-radius: 12px;
-      background: rgba(0,0,0,.18);
-    }
-
-    .metric span {
-      display: block;
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-
-    .metric strong {
-      display: block;
-      margin-top: 5px;
-      font-size: 17px;
-    }
-
-    .disclaimer {
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.45;
-      margin-top: 10px;
-    }
-
-    .hidden { display: none !important; }
-
-    @media (max-width: 1100px) {
-      .layout { grid-template-columns: 1fr 1fr; }
-      .layout .column:nth-child(2) { grid-column: 1 / -1; grid-row: 1; }
-    }
-
-    @media (max-width: 720px) {
-      .app { padding: 10px; }
-      .topbar { align-items: flex-start; }
-      .top-actions { flex-direction: column; align-items: flex-end; }
-      .status-dot { display: none; }
-      .layout { grid-template-columns: 1fr; }
-      .layout .column:nth-child(2) { grid-column: auto; grid-row: auto; }
-      .composer { grid-template-columns: 1fr auto; }
-      .composer .send-label { display: none; }
-      .form-grid { grid-template-columns: 1fr; }
-      .hero { min-height: 280px; }
-      .hero-orb { width: 145px; height: 145px; }
-    }
-  </style>
+  <meta name="theme-color" content="#02070b" />
+  <title>ATLAS — TradingView Command Center</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <div class="stars"></div>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <div class="grid" aria-hidden="true"></div>
 
-  <div class="app">
-    <header class="topbar">
-      <div class="brand-wrap">
-        <div class="mini-orb" aria-hidden="true"></div>
-        <div class="brand">
-          <h1>ATLAS</h1>
-          <p>Steven's AI Trading Assistant</p>
-        </div>
-      </div>
-
-      <div class="top-actions">
-        <span class="status-dot" id="connectionStatus">Ready</span>
-        <button class="btn" id="voiceToggle">Voice On</button>
-        <button class="btn primary" id="listenButton">🎙 Listen</button>
-      </div>
-    </header>
-
-    <main class="layout">
-      <section class="column">
-        <article class="card">
-          <div class="card-head">
-            <h2>Watchlist</h2>
-            <button class="btn" id="scanButton">Analyze</button>
-          </div>
-          <div class="card-body">
-            <div class="watchlist" id="watchlist"></div>
-            <p class="disclaimer">
-              Prices are placeholders until a live market-data provider is connected.
-            </p>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-head"><h2>Atlas Valuation Engine</h2></div>
-          <div class="card-body">
-            <div class="form-grid">
-              <label>
-                Estimated quarterly earnings
-                <input id="earningsInput" type="number" step="any" value="82.828" />
-              </label>
-              <label>
-                Shares outstanding
-                <input id="sharesInput" type="number" step="any" value="1.13" />
-              </label>
-              <label>
-                Earnings growth %
-                <input id="growthInput" type="number" step="any" value="32.8" />
-              </label>
-              <label>
-                Manual multiple
-                <select id="multipleInput">
-                  <option value="15">15×</option>
-                  <option value="20">20×</option>
-                  <option value="30" selected>30×</option>
-                  <option value="40">40×</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="valuation-result">
-              <span>Formula target</span><br />
-              <strong id="valuationTarget">$0.00</strong>
-              <div id="valuationExplanation" class="disclaimer"></div>
-            </div>
-
-            <button class="btn primary" id="calculateButton" style="width:100%; margin-top:10px;">
-              Calculate Price Target
-            </button>
-          </div>
-        </article>
-      </section>
-
-      <section class="column">
-        <article class="card hero">
-          <div>
-            <div class="hero-orb" id="heroOrb"><div class="orb-core"></div></div>
-            <h2>Atlas Online</h2>
-            <p>
-              Talk naturally or type below. Atlas remembers your watchlist, your aggressive-growth preference,
-              and your earnings-based price-target method.
-            </p>
-            <div class="voice-state" id="voiceState">Tap Listen to speak</div>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-head">
-            <h2>AI Conversation</h2>
-            <button class="btn" id="clearChatButton">Clear</button>
-          </div>
-
-          <div class="chat-log" id="chatLog"></div>
-
-          <div class="composer">
-            <input
-              id="messageInput"
-              type="text"
-              placeholder="Ask Atlas about a stock, valuation, balance sheet, or market idea..."
-              autocomplete="off"
-            />
-            <button class="btn" id="micButton">🎙</button>
-            <button class="btn primary" id="sendButton"><span class="send-label">Send</span> ➤</button>
-          </div>
-        </article>
-      </section>
-
-      <section class="column">
-        <article class="card">
-          <div class="card-head"><h2>Trading Profile</h2></div>
-          <div class="card-body">
-            <div class="metric-grid">
-              <div class="metric"><span>Style</span><strong>Aggressive Growth</strong></div>
-              <div class="metric"><span>Signals</span><strong>MACD · RSI · SMA</strong></div>
-              <div class="metric"><span>High Growth</span><strong>30×</strong></div>
-              <div class="metric"><span>Lower Growth</span><strong>15×</strong></div>
-            </div>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-head"><h2>Research Tools</h2></div>
-          <div class="card-body" style="display:grid; gap:9px;">
-            <button class="btn primary research-btn" data-prompt="Analyze my watchlist and rank the names by aggressive growth potential, valuation risk, balance-sheet quality, and major catalysts.">Rank Watchlist</button>
-            <button class="btn research-btn" data-prompt="Explain how to evaluate a company's balance sheet, including cash, debt, dilution, free cash flow, current ratio, and interest coverage.">Balance-Sheet Check</button>
-            <button class="btn research-btn" data-prompt="Create a quarterly stock-price target using Steven's method: estimated quarterly earnings multiplied by 30 for earnings growth above 20%, or multiplied by 15 for growth below 20%, then divided by shares outstanding. Clearly state assumptions.">Quarterly Target</button>
-            <button class="btn research-btn" data-prompt="Give me a practical technical-analysis checklist using MACD, RSI, and simple moving averages.">Technical Setup</button>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-head"><h2>System Notes</h2></div>
-          <div class="card-body">
-            <p class="disclaimer" style="margin:0;">
-              Atlas provides research and calculations, not guaranteed outcomes or personalized financial advice.
-              Verify company filings, share counts, analyst estimates, and market prices before trading.
-            </p>
-          </div>
-        </article>
-      </section>
-    </main>
+  <div class="ticker-shell panel-lite">
+    <div id="tvTicker"></div>
   </div>
 
-  <script>
-    const API_URL = "/api/chat";
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">AI TRADING ASSISTANT</p>
+        <h1>ATLAS</h1>
+      </div>
+      <div class="status"><span></span><b id="statusText">AI READY</b></div>
+    </header>
 
-    const SYSTEM_CONTEXT = `
-You are Atlas, Steven's AI trading assistant.
-Your tone is direct, practical, intelligent, and conversational.
-Steven prefers aggressive-growth investing and follows MU, NVDA, MSTR, BTCUSD, SOLUSD, SNDK, and Cerebras/CBRS when available.
-He watches MACD, RSI, and simple moving averages.
-His valuation method is:
-- If expected earnings growth is above 20%, estimated quarterly earnings × 30 ÷ shares outstanding.
-- If expected earnings growth is below 20%, estimated quarterly earnings × 15 ÷ shares outstanding.
-- He also likes seeing 20×, 30×, and 40× scenarios.
-Always state units and assumptions because earnings estimates can mean quarterly net income, annual net income, EPS, revenue, or another measure.
-Never invent current prices, filings, analyst estimates, or financial data.
-If live data is unavailable, say so and ask for the numbers needed.
-Do not promise guaranteed returns. Explain risk, dilution, debt, catalysts, and downside.
-`;
-
-    const watchlistData = [
-      { symbol: "MU", name: "Micron Technology", price: "Live data needed" },
-      { symbol: "NVDA", name: "NVIDIA", price: "Live data needed" },
-      { symbol: "MSTR", name: "Strategy", price: "Live data needed" },
-      { symbol: "BTCUSD", name: "Bitcoin", price: "Live data needed" },
-      { symbol: "SOLUSD", name: "Solana", price: "Live data needed" },
-      { symbol: "SNDK", name: "SanDisk", price: "Live data needed" },
-      { symbol: "CBRS", name: "Cerebras watch", price: "Private / verify ticker" }
-    ];
-
-    const state = {
-      voiceEnabled: localStorage.getItem("atlasVoiceEnabled") !== "false",
-      listening: false,
-      messages: JSON.parse(localStorage.getItem("atlasMessages") || "[]")
-    };
-
-    const $ = (id) => document.getElementById(id);
-    const chatLog = $("chatLog");
-    const messageInput = $("messageInput");
-    const voiceState = $("voiceState");
-    const connectionStatus = $("connectionStatus");
-
-    function renderWatchlist() {
-      $("watchlist").innerHTML = watchlistData.map(item => `
-        <div class="ticker">
-          <div>
-            <strong>${item.symbol}</strong>
-            <span>${item.name}</span>
-          </div>
-          <div class="price">${item.price}</div>
+    <section class="hero panel">
+      <div class="core-wrap" aria-hidden="true"><div class="core"><div class="core-inner"></div></div></div>
+      <div class="hero-copy">
+        <p class="label">VOICE LINK</p>
+        <h2>Live charts, fundamentals, technical signals, and your valuation engine.</h2>
+        <p id="atlasReply">Atlas is ready. Select a symbol, inspect TradingView, then ask a question.</p>
+        <div class="controls">
+          <button id="micButton" class="primary" type="button">Start listening</button>
+          <button id="stopVoice" class="secondary" type="button">Stop voice</button>
         </div>
-      `).join("");
-    }
+      </div>
+    </section>
 
-    function addMessage(role, text, save = true) {
-      const div = document.createElement("div");
-      div.className = `message ${role}`;
-      div.textContent = text;
-      chatLog.appendChild(div);
-      chatLog.scrollTop = chatLog.scrollHeight;
+    <section class="symbol-bar panel">
+      <label for="symbolSelect">Active symbol</label>
+      <select id="symbolSelect">
+        <option value="NASDAQ:MU">MU — Micron</option>
+        <option value="NASDAQ:NVDA">NVDA — NVIDIA</option>
+        <option value="NASDAQ:MSTR">MSTR — Strategy</option>
+        <option value="NASDAQ:SNDK">SNDK — SanDisk</option>
+        <option value="COINBASE:BTCUSD">BTCUSD — Bitcoin</option>
+        <option value="COINBASE:SOLUSD">SOLUSD — Solana</option>
+      </select>
+      <button id="loadSymbol" class="primary" type="button">Load symbol</button>
+      <span id="activeSymbolText" class="mini">NASDAQ:MU</span>
+    </section>
 
-      if (save && (role === "user" || role === "atlas")) {
-        state.messages.push({ role, text });
-        state.messages = state.messages.slice(-24);
-        localStorage.setItem("atlasMessages", JSON.stringify(state.messages));
-      }
-    }
+    <section class="market-grid">
+      <section class="panel chart-panel">
+        <div class="section-head"><h3>TradingView Advanced Chart</h3><span class="mini">PRICE + VOLUME</span></div>
+        <div id="tvChart" class="widget-frame tall"></div>
+      </section>
 
-    function renderSavedMessages() {
-      if (!state.messages.length) {
-        addMessage("atlas",
-          "Atlas online. Ask me about your watchlist, a company balance sheet, or your earnings-based price target.",
-          false
-        );
-        return;
-      }
-      state.messages.forEach(msg => addMessage(msg.role, msg.text, false));
-    }
+      <aside class="side-stack">
+        <section class="panel finnhub-panel">
+          <div class="section-head"><h3>Live Market Data</h3><span class="mini">FINNHUB</span></div>
+          <div id="finnhubStatus" class="mini">Loading…</div>
+          <div class="quote-primary">
+            <div><small id="companyName">Selected symbol</small><b id="livePrice">—</b></div>
+            <span id="liveChange">—</span>
+          </div>
+          <div class="market-stats">
+            <div><small>Open</small><b id="openPrice">—</b></div>
+            <div><small>Day high</small><b id="dayHigh">—</b></div>
+            <div><small>Day low</small><b id="dayLow">—</b></div>
+            <div><small>Previous close</small><b id="prevClose">—</b></div>
+            <div><small>Market cap</small><b id="marketCap">—</b></div>
+            <div><small>Shares outstanding</small><b id="sharesOutstanding">—</b></div>
+            <div><small>P/E</small><b id="peRatio">—</b></div>
+            <div><small>52-week range</small><b id="weekRange">—</b></div>
+          </div>
+          <button id="fillShares" class="secondary wide" type="button">Use Finnhub shares in valuation</button>
+        </section>
+        <section class="panel">
+          <div class="section-head"><h3>Technical Analysis</h3><span class="mini">RSI · MACD · SMA</span></div>
+          <div id="tvTechnical" class="widget-frame technical"></div>
+        </section>
+      </aside>
+    </section>
 
-    function chooseVoice() {
-      const voices = speechSynthesis.getVoices();
-      return (
-        voices.find(v => /female|zira|samantha|google us english/i.test(v.name)) ||
-        voices.find(v => /^en(-|_)/i.test(v.lang)) ||
-        voices[0]
-      );
-    }
+    <section class="market-grid lower-grid">
+      <section class="panel fundamentals-panel">
+        <div class="section-head"><h3>Company Fundamentals</h3><span class="mini">TRADINGVIEW + FINNHUB</span></div>
+        <div id="tvFundamentals" class="widget-frame fundamentals"></div>
+      </section>
 
-    function speak(text) {
-      if (!state.voiceEnabled || !("speechSynthesis" in window)) return;
-      speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      const selectedVoice = chooseVoice();
-      if (selectedVoice) utterance.voice = selectedVoice;
-      utterance.rate = 1;
-      utterance.pitch = 1.08;
-      utterance.volume = 1;
-      speechSynthesis.speak(utterance);
-    }
+      <aside class="side-stack">
+        <section class="panel calculator-panel">
+          <div class="section-head"><h3>Atlas Valuation</h3><span class="mini">YOUR FORMULA</span></div>
+          <label>Projected quarterly earnings
+            <div class="input-row"><input id="earnings" type="number" step="any" value="82.828" /><select id="earningsUnit"><option value="1000000000">B</option><option value="1000000">M</option></select></div>
+          </label>
+          <label>Shares outstanding
+            <div class="input-row"><input id="shares" type="number" step="any" value="1.13" /><select id="sharesUnit"><option value="1000000000">B</option><option value="1000000">M</option></select></div>
+          </label>
+          <label>Earnings growth %<input id="growth" type="number" step="any" value="32.8" /></label>
+          <button id="calculate" class="primary wide" type="button">Calculate targets</button>
+          <button id="sendValuation" class="secondary wide" type="button">Ask Atlas to analyze</button>
+          <div id="valuationResults" class="results"></div>
+        </section>
+      </aside>
+    </section>
 
-    async function sendToAtlas(text) {
-      const clean = text.trim();
-      if (!clean) return;
+    <section class="layout">
+      <section class="panel chat-panel">
+        <div class="section-head"><h3>Command Center</h3><button id="clearChat" class="text-button">Clear</button></div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <form id="chatForm" class="chat-form">
+          <input id="chatInput" autocomplete="off" placeholder="Ask Atlas about this symbol…" />
+          <button type="submit">Send</button>
+        </form>
+      </section>
 
-      addMessage("user", clean);
-      messageInput.value = "";
-      connectionStatus.textContent = "Thinking";
-      voiceState.textContent = "Atlas is thinking…";
+      <aside class="side-stack">
+        <section class="panel signal-panel">
+          <div class="section-head"><h3>TradingView Signals</h3><span class="mini">WEBHOOK READY</span></div>
+          <div id="signalStatus" class="signal-box">No webhook signal received in this browser session.</div>
+          <p class="help">Pine Script is included in the ZIP. Create a TradingView alert and send it to <code>/api/tradingview</code>.</p>
+        </section>
+      </aside>
+    </section>
 
-      const typing = document.createElement("div");
-      typing.className = "message atlas";
-      typing.textContent = "Analyzing…";
-      chatLog.appendChild(typing);
-      chatLog.scrollTop = chatLog.scrollHeight;
+    <footer>Research tool only — not financial advice. Finnhub and TradingView data may be delayed or unavailable depending on the symbol, exchange, and plan.</footer>
+  </main>
 
-      try {
-        const history = state.messages.slice(-12).map(m => ({
-          role: m.role === "atlas" ? "assistant" : "user",
-          content: m.text
-        }));
-
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: clean,
-            history,
-            system: SYSTEM_CONTEXT
-          })
-        });
-
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(data.error || `Server error ${response.status}`);
-        }
-
-        typing.remove();
-        const answer = data.reply || "I could not produce a response.";
-        addMessage("atlas", answer);
-        speak(answer);
-        connectionStatus.textContent = "Ready";
-        voiceState.textContent = "Atlas is ready";
-      } catch (error) {
-        typing.remove();
-        const message =
-          "My screen and voice are working, but my AI backend is not connected yet. " +
-          "Deploy the included /api/atlas.js file and add your OPENAI_API_KEY as a server environment variable. " +
-          "Do not put the key inside index.html. Error: " + error.message;
-        addMessage("atlas", message);
-        connectionStatus.textContent = "Backend offline";
-        voiceState.textContent = "AI connection needed";
-      }
-    }
-
-    function calculateValuation() {
-      const earnings = Number($("earningsInput").value);
-      const shares = Number($("sharesInput").value);
-      const growth = Number($("growthInput").value);
-      const manualMultiple = Number($("multipleInput").value);
-
-      if (!Number.isFinite(earnings) || !Number.isFinite(shares) || shares <= 0) {
-        $("valuationTarget").textContent = "Check inputs";
-        $("valuationExplanation").textContent = "Earnings and shares must be valid numbers.";
-        return;
-      }
-
-      const ruleMultiple = growth > 20 ? 30 : 15;
-      const target = (earnings * manualMultiple) / shares;
-      const ruleTarget = (earnings * ruleMultiple) / shares;
-
-      $("valuationTarget").textContent = `$${target.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })}`;
-
-      $("valuationExplanation").textContent =
-        `Manual scenario: ${earnings} × ${manualMultiple} ÷ ${shares}. ` +
-        `Steven's growth rule selects ${ruleMultiple}× at ${growth}% growth, producing $${ruleTarget.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        })}. Keep earnings and shares in matching units, such as billions and billions.`;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null;
-
-    if (SpeechRecognition) {
-      recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = "en-US";
-
-      recognition.onstart = () => {
-        state.listening = true;
-        voiceState.textContent = "Listening…";
-        connectionStatus.textContent = "Listening";
-        $("heroOrb").style.filter = "brightness(1.6)";
-      };
-
-      recognition.onresult = event => {
-        const words = event.results[0][0].transcript;
-        messageInput.value = words;
-        voiceState.textContent = `You said: ${words}`;
-        sendToAtlas(words);
-      };
-
-      recognition.onerror = event => {
-        voiceState.textContent = `Microphone error: ${event.error}`;
-        connectionStatus.textContent = "Mic issue";
-      };
-
-      recognition.onend = () => {
-        state.listening = false;
-        $("heroOrb").style.filter = "";
-        if (connectionStatus.textContent === "Listening") connectionStatus.textContent = "Ready";
-      };
-    }
-
-    function startListening() {
-      if (!recognition) {
-        voiceState.textContent = "Speech recognition is not supported in this browser.";
-        return;
-      }
-      try {
-        recognition.start();
-      } catch {
-        voiceState.textContent = "Already listening…";
-      }
-    }
-
-    $("sendButton").addEventListener("click", () => sendToAtlas(messageInput.value));
-    $("micButton").addEventListener("click", startListening);
-    $("listenButton").addEventListener("click", startListening);
-
-    messageInput.addEventListener("keydown", event => {
-      if (event.key === "Enter") sendToAtlas(messageInput.value);
-    });
-
-    $("voiceToggle").addEventListener("click", () => {
-      state.voiceEnabled = !state.voiceEnabled;
-      localStorage.setItem("atlasVoiceEnabled", String(state.voiceEnabled));
-      $("voiceToggle").textContent = state.voiceEnabled ? "Voice On" : "Voice Off";
-      if (!state.voiceEnabled) speechSynthesis.cancel();
-    });
-
-    $("clearChatButton").addEventListener("click", () => {
-      state.messages = [];
-      localStorage.removeItem("atlasMessages");
-      chatLog.innerHTML = "";
-      addMessage("atlas", "Conversation cleared. Atlas is ready.", false);
-    });
-
-    $("calculateButton").addEventListener("click", calculateValuation);
-
-    $("scanButton").addEventListener("click", () => {
-      sendToAtlas(
-        "Analyze my watchlist: MU, NVDA, MSTR, BTCUSD, SOLUSD, SNDK, and Cerebras. " +
-        "Do not invent live data. Tell me what current numbers or filings you need from me, then explain the most important risks and catalysts for each."
-      );
-    });
-
-    document.querySelectorAll(".research-btn").forEach(button => {
-      button.addEventListener("click", () => sendToAtlas(button.dataset.prompt));
-    });
-
-    window.speechSynthesis?.addEventListener?.("voiceschanged", chooseVoice);
-
-    renderWatchlist();
-    renderSavedMessages();
-    calculateValuation();
-    $("voiceToggle").textContent = state.voiceEnabled ? "Voice On" : "Voice Off";
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>

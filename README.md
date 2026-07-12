@@ -1,37 +1,34 @@
-# Atlas — Steven's AI Trading Assistant
+# Atlas — Finnhub + TradingView Upgrade
 
-## Files
-- `index.html` — complete black futuristic interface, voice input/output, watchlist, chat memory, and valuation calculator.
-- `api/atlas.js` — secure server-side OpenAI connection.
-- `package.json` — deployment metadata.
+This version combines:
 
-## Important
-Never paste an OpenAI API key into `index.html`, GitHub, or any public browser code. The key belongs in a server environment variable named:
+- Finnhub live quotes and company data
+- TradingView charts, financial panels, and technical-analysis widgets
+- RSI, MACD, SMA 20/50/200 Pine Script alerts
+- Atlas voice chat through the OpenAI API
+- Steven's valuation formula and 20x/30x/40x scenarios
 
-`OPENAI_API_KEY`
+## Vercel environment variables
 
-## Recommended deployment: Vercel
-1. Upload this entire folder to a GitHub repository.
-2. Import the repository into Vercel.
-3. In Vercel, open Project Settings → Environment Variables.
-4. Add `OPENAI_API_KEY` and paste your API key there.
-5. Redeploy.
-6. Open the Vercel website URL and allow microphone permission.
+Add these in Vercel → Project → Settings → Environment Variables:
 
-GitHub Pages alone cannot securely run the `/api/atlas.js` backend. It can display the screen, but the AI brain needs a backend such as Vercel.
+- `OPENAI_API_KEY`
+- `FINNHUB_API_KEY`
+- `OPENAI_MODEL` (optional, defaults to `gpt-5-mini`)
+- `TRADINGVIEW_WEBHOOK_SECRET` (optional until alerts are configured)
 
-## Current features
-- Steven's AI Trading Assistant branding
-- Black futuristic screen
-- Female-leaning browser voice selection
-- Speech recognition
-- Real AI replies through a secure backend
-- Local conversation memory
-- MU, NVDA, MSTR, BTCUSD, SOLUSD, SNDK, and Cerebras watchlist
-- Steven's 15×/30× earnings-growth rule
-- Manual 20×/30×/40× scenario support
-- Balance-sheet and technical-analysis prompts
-- Mobile responsive layout
+Never put API keys in `index.html`, `script.js`, or GitHub.
 
-## Live data
-This version does not invent live stock prices. A market-data API can be connected next.
+## Upload to GitHub
+
+Extract the ZIP and upload the contents of this folder to the repository root. The repository root should directly contain `index.html`, `script.js`, `style.css`, `api`, `lib`, and the other project files.
+
+Commit the upload and wait for Vercel to redeploy.
+
+## How it works
+
+`/api/market` calls Finnhub securely from Vercel and returns the latest quote, profile, and available basic metrics. The browser refreshes market data when a symbol is selected.
+
+`/api/chat` also pulls the latest Finnhub snapshot before sending the question to Atlas, allowing Atlas to discuss the current quote and available fundamentals without exposing the Finnhub key.
+
+The free Finnhub plan may not provide every metric or every market in real time. Missing fields appear as a dash instead of being invented.

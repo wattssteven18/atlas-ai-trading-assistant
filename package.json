@@ -1,9 +1,9 @@
 {
-  "name": "atlas-trading-assistant",
+  "name": "atlas-tradingview-assistant",
   "version": "2.0.0",
   "private": true,
-  "description": "Steven's AI Trading Assistant",
-  "engines": {
-    "node": ">=18"
+  "type": "module",
+  "dependencies": {
+    "openai": "^5.0.0"
   }
 }
