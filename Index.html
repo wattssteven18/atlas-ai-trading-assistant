@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Atlas AI</title>
+</head>
+
+<body style="background:black;color:lime;font-family:Arial;text-align:center;padding-top:100px;">
+
+<h1>ATLAS AI</h1>
+
+<p>Steven's AI Trading Assistant</p>
+
+<button onclick="atlasSpeak()">
+Talk to Atlas
+</button>
+
+<script>
+function atlasSpeak(){
+
+const speech = new SpeechSynthesisUtterance(
+"Hello Steven. Atlas is online and ready."
+);
+
+speech.rate = .9;
+
+window.speechSynthesis.speak(speech);
+
+}
+</script>
+
+</body>
+</html>
