@@ -436,3 +436,103 @@
     }
 
   
+</style>
+</head>
+
+<body>
+  <div class="stars"></div>
+
+  <main style="
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:24px;
+    position:relative;
+    z-index:2;
+  ">
+    <h1 style="
+      font-size:clamp(48px, 12vw, 100px);
+      margin:0;
+      color:#20f6c7;
+      text-shadow:0 0 12px #20f6c7, 0 0 35px #20f6c7;
+    ">
+      ATLAS
+    </h1>
+
+    <p style="
+      font-size:20px;
+      letter-spacing:4px;
+      color:#8b9aaa;
+      margin-top:12px;
+    ">
+      AI TRADING ASSISTANT
+    </p>
+
+    <div style="
+      width:170px;
+      height:170px;
+      margin:35px 0;
+      border:3px solid #20f6c7;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 0 25px #20f6c7, inset 0 0 25px rgba(32,246,199,.35);
+      animation:pulse 2s infinite;
+    ">
+      <span style="font-size:70px;">◉</span>
+    </div>
+
+    <p id="status" style="font-size:18px;">
+      Atlas is online. Tap the screen and speak.
+    </p>
+  </main>
+
+  <script>
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function speak(text) {
+      window.speechSynthesis.cancel();
+      const voice = new SpeechSynthesisUtterance(text);
+      voice.rate = 1;
+      voice.pitch = 1.15;
+      window.speechSynthesis.speak(voice);
+    }
+
+    document.body.addEventListener("click", () => {
+      speak("Atlas online. How can I help you with the market today?");
+    }, { once: true });
+
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        const words =
+          event.results[event.results.length - 1][0].transcript;
+
+        document.getElementById("status").textContent =
+          "You said: " + words;
+
+        speak("I heard you say " + words);
+      };
+
+      recognition.onerror = () => {
+        document.getElementById("status").textContent =
+          "Microphone permission is needed.";
+      };
+
+      document.body.addEventListener("click", () => {
+        try {
+          recognition.start();
+        } catch (error) {}
+      });
+    }
+  </script>
+</body>
+</html>
