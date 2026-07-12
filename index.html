@@ -72,24 +72,62 @@
       addMessage("Atlas", text);
       speak(text);
     }
+async function askAtlas() {
+  const input = document.getElementById("question");
+  const question = input.value.trim();
 
-    function askAtlas() {
-      const input = document.getElementById("question");
-      const question = input.value.trim();
+  if (!question) return;
 
-      if (!question) return;
+  addMessage("Steven", question);
+  input.value = "";
 
-      addMessage("Steven", question);
+  addMessage("Atlas", "Thinking...");
 
-      let reply = "I heard your question. My live market data and full artificial intelligence connection will be added next.";
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: question
+      })
+    });
 
-      if (question.toLowerCase().includes("watchlist")) {
-        reply = "Your watchlist includes Micron, Nvidia, Strategy, SanDisk, Bitcoin, and Solana.";
-      }
+    const data = await response.json();
 
-      if (question.toLowerCase().includes("formula")) {
-        reply = "Your formula divides estimated revenue by shares outstanding, then applies twenty, thirty, and forty times multiples.";
-      }
+    // Remove the temporary "Thinking..." message
+    const chat = document.getElementById("chat");
+    chat.lastElementChild.remove();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Atlas could not connect.");
+    }
+
+    const reply = data.reply || "I did not receive a response.";
+
+    addMessage("Atlas", reply);
+    speak(reply);
+
+  } catch (error) {
+    const chat = document.getElementById("chat");
+
+    if (
+      chat.lastElementChild &&
+      chat.lastElementChild.textContent.includes("Thinking...")
+    ) {
+      chat.lastElementChild.remove();
+    }
+
+    const errorMessage =
+      "I could not connect to my AI brain. Please check the connection and try again.";
+
+    addMessage("Atlas", errorMessage);
+    speak(errorMessage);
+
+    console.error(error);
+  }
+}
 
       addMessage("Atlas", reply);
       speak(reply);
