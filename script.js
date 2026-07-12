@@ -1,44 +1,160 @@
-const history = [];
 const $ = (id) => document.getElementById(id);
-let currentSymbol = "NASDAQ:MU";
-let latestMarketSnapshot = null;
 
-const WATCHLIST = [
-  { proName: "NASDAQ:MU", title: "MU" },
-  { proName: "NASDAQ:NVDA", title: "NVDA" },
-  { proName: "NASDAQ:MSTR", title: "MSTR" },
-  { proName: "NASDAQ:SNDK", title: "SNDK" },
-  { proName: "COINBASE:BTCUSD", title: "BTC" },
-  { proName: "COINBASE:SOLUSD", title: "SOL" }
-];
+const state = {
+  currentMarket: null,
+  conversation: [],
+  recognition: null,
+  selectedVoice: null,
+};
 
-function addExternalWidget(containerId, src, config) {
-  const container = $(containerId);
-  container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
+function money(value, digits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(n);
+}
+
+function compact(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function setError(element, text = "") {
+  element.textContent = text;
+  element.classList.toggle("hidden", !text);
+}
+
+function setStatus(text, online = false) {
+  $("connectionStatus").textContent = text;
+  $("connectionStatus").classList.toggle("online", online);
+}
+
+function addMessage(role, text) {
+  const div = document.createElement("div");
+  div.className = `message ${role}`;
+  div.textContent = text;
+  $("chatLog").appendChild(div);
+  $("chatLog").scrollTop = $("chatLog").scrollHeight;
+}
+
+async function loadMarketData(rawTicker, updateValuation = false) {
+  const ticker = String(rawTicker || "").trim().toUpperCase();
+  if (!ticker) return;
+
+  setStatus(`Loading ${ticker}…`);
+  setError($("marketError"));
+  setError($("valuationMessage"));
+
+  try {
+    const response = await fetch(`/api/market?symbol=${encodeURIComponent(ticker)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Unable to load market data.");
+
+    state.currentMarket = data;
+    $("marketTicker").value = ticker;
+    $("valuationTicker").value = ticker;
+
+    $("companyName").textContent = data.company.name || ticker;
+    $("currentPrice").textContent = money(data.quote.current);
+    $("dailyChange").textContent =
+      `${money(data.quote.change)} (${Number(data.quote.percentChange || 0).toFixed(2)}%)`;
+    $("dailyChange").className = Number(data.quote.change) >= 0 ? "positive" : "negative";
+    $("sharesOutstandingDisplay").textContent = data.company.sharesOutstanding
+      ? `${Number(data.company.sharesOutstanding).toFixed(3)}B`
+      : "Not available";
+    $("marketCap").textContent = data.company.marketCapitalization
+      ? `${compact(data.company.marketCapitalization * 1_000_000)}`
+      : "—";
+
+    const high52 = data.metrics["52WeekHigh"];
+    const low52 = data.metrics["52WeekLow"];
+    $("weekRange").textContent =
+      Number.isFinite(Number(low52)) && Number.isFinite(Number(high52))
+        ? `${money(low52)} – ${money(high52)}`
+        : "—";
+
+    $("valuationCurrentPrice").textContent = money(data.quote.current);
+
+    if (updateValuation && data.company.sharesOutstanding) {
+      $("sharesOutstanding").value = Number(data.company.sharesOutstanding).toFixed(4);
+      $("sharesUnit").value = "1000000000";
+    }
+
+    setStatus(`${ticker} live`, true);
+    return data;
+  } catch (error) {
+    setStatus("Data error");
+    setError($("marketError"), error.message);
+    if (updateValuation) setError($("valuationMessage"), error.message);
+    throw error;
+  }
+}
+
+function calculateValuation() {
+  setError($("valuationMessage"));
+
+  const earnings = Number($("earningsEstimate").value) * Number($("earningsUnit").value);
+  const shares = Number($("sharesOutstanding").value) * Number($("sharesUnit").value);
+  const growth = Number($("growthRate").value);
+  const mode = $("multipleMode").value;
+
+  if (!(earnings > 0)) {
+    setError($("valuationMessage"), "Enter the estimated quarterly earnings.");
+    return;
+  }
+  if (!(shares > 0)) {
+    setError($("valuationMessage"), "Load the ticker or enter shares outstanding.");
+    return;
+  }
+  if (!Number.isFinite(growth)) {
+    setError($("valuationMessage"), "Enter the earnings growth rate.");
+    return;
+  }
+
+  const multiple = mode === "auto" ? (growth >= 20 ? 30 : 15) : Number(mode);
+  const target = (earnings * multiple) / shares;
+  const current = Number(state.currentMarket?.quote?.current);
+  const upside = current > 0 ? ((target / current) - 1) * 100 : null;
+
+  $("multipleUsed").textContent = `${multiple}×`;
+  $("targetPrice").textContent = money(target);
+  $("upsideDownside").textContent = Number.isFinite(upside)
+    ? `${upside >= 0 ? "+" : ""}${upside.toFixed(2)}%`
+    : "Load current price";
+  $("upsideDownside").className = Number.isFinite(upside)
+    ? (upside >= 0 ? "positive" : "negative")
+    : "";
+
+  return { target, multiple, upside };
+}
+
+function renderTradingView(symbol = "NASDAQ:MU") {
+  const frame = $("tradingViewChart");
+  frame.innerHTML = "";
+
+  const container = document.createElement("div");
+  container.className = "tradingview-widget-container";
+  container.style.height = "100%";
+  container.style.width = "100%";
+
+  const widget = document.createElement("div");
+  widget.className = "tradingview-widget-container__widget";
+  widget.style.height = "calc(100% - 32px)";
+  widget.style.width = "100%";
+
   const script = document.createElement("script");
   script.type = "text/javascript";
-  script.src = src;
+  script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
   script.async = true;
-  script.textContent = JSON.stringify(config);
-  container.appendChild(script);
-}
-
-function renderTicker() {
-  addExternalWidget("tvTicker", "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js", {
-    symbols: WATCHLIST,
-    showSymbolLogo: true,
-    isTransparent: true,
-    displayMode: "adaptive",
-    colorTheme: "dark",
-    locale: "en"
-  });
-}
-
-function renderTradingView(symbol) {
-  currentSymbol = symbol;
-  $("activeSymbolText").textContent = symbol;
-
-  addExternalWidget("tvChart", "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js", {
+  script.textContent = JSON.stringify({
     autosize: true,
     symbol,
     interval: "D",
@@ -46,243 +162,167 @@ function renderTradingView(symbol) {
     theme: "dark",
     style: "1",
     locale: "en",
-    backgroundColor: "rgba(3, 12, 18, 1)",
-    gridColor: "rgba(32, 246, 199, 0.06)",
     allow_symbol_change: true,
     calendar: false,
-    support_host: "https://www.tradingview.com"
+    support_host: "https://www.tradingview.com",
+    studies: [
+      "STD;RSI",
+      "STD;MACD",
+      "STD;SMA"
+    ]
   });
 
-  addExternalWidget("tvTechnical", "https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js", {
-    interval: "1D",
-    width: "100%",
-    isTransparent: true,
-    height: 420,
-    symbol,
-    showIntervalTabs: true,
-    displayMode: "multiple",
-    locale: "en",
-    colorTheme: "dark"
-  });
-
-  loadFinnhub(symbol);
-
-  addExternalWidget("tvFundamentals", "https://s3.tradingview.com/external-embedding/embed-widget-financials.js", {
-    isTransparent: true,
-    largeChartUrl: "",
-    displayMode: "regular",
-    width: "100%",
-    height: 640,
-    colorTheme: "dark",
-    symbol,
-    locale: "en"
-  });
+  container.appendChild(widget);
+  container.appendChild(script);
+  frame.appendChild(container);
 }
 
-
-function fmtNumber(value, digits = 2) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
-  return Number(value).toLocaleString("en-US", { maximumFractionDigits: digits });
-}
-
-function fmtCompact(value, unitIsMillions = false) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
-  const base = unitIsMillions ? Number(value) * 1_000_000 : Number(value);
-  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(base);
-}
-
-async function loadFinnhub(symbol) {
-  $("finnhubStatus").textContent = "Loading live data…";
-  try {
-    const response = await fetch(`/api/market?symbol=${encodeURIComponent(symbol)}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Finnhub request failed.");
-    latestMarketSnapshot = data;
-    const q = data.quote || {};
-    const c = data.company || {};
-    const m = data.metrics || {};
-    const currency = c.currency || "USD";
-    const moneyValue = value => value == null ? "—" : new Intl.NumberFormat("en-US", { style:"currency", currency, maximumFractionDigits:2 }).format(value);
-
-    $("companyName").textContent = c.name || data.symbol || symbol;
-    $("livePrice").textContent = moneyValue(q.current);
-    const change = Number(q.change);
-    const pct = Number(q.percentChange);
-    $("liveChange").textContent = Number.isFinite(change) && Number.isFinite(pct) ? `${change >= 0 ? "+" : ""}${change.toFixed(2)} (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%)` : "—";
-    $("liveChange").className = change >= 0 ? "positive" : "negative";
-    $("openPrice").textContent = moneyValue(q.open);
-    $("dayHigh").textContent = moneyValue(q.high);
-    $("dayLow").textContent = moneyValue(q.low);
-    $("prevClose").textContent = moneyValue(q.previousClose);
-    $("marketCap").textContent = c.marketCap == null ? "—" : fmtCompact(c.marketCap, true);
-    $("sharesOutstanding").textContent = c.sharesOutstanding == null ? "—" : `${fmtNumber(c.sharesOutstanding, 2)}M`;
-    $("peRatio").textContent = fmtNumber(m.peTTM ?? m.peAnnual, 2);
-    $("weekRange").textContent = m.week52Low == null || m.week52High == null ? "—" : `${moneyValue(m.week52Low)} – ${moneyValue(m.week52High)}`;
-    $("finnhubStatus").textContent = `Updated ${q.timestamp ? new Date(q.timestamp * 1000).toLocaleTimeString() : "now"}`;
-  } catch (error) {
-    latestMarketSnapshot = null;
-    $("finnhubStatus").textContent = error.message;
-    $("livePrice").textContent = "—";
-    $("liveChange").textContent = "—";
-  }
-}
-
-function addMessage(role, content, error = false) {
-  const el = document.createElement("div");
-  el.className = `message ${role}${error ? " error" : ""}`;
-  el.textContent = content;
-  $("messages").appendChild(el);
-  $("messages").scrollTop = $("messages").scrollHeight;
-  if (!error) history.push({ role, content });
+function chooseVoice() {
+  const voices = speechSynthesis.getVoices();
+  state.selectedVoice =
+    voices.find(v => /female|samantha|zira|google us english/i.test(`${v.name} ${v.voiceURI}`)) ||
+    voices.find(v => /^en(-|_)/i.test(v.lang)) ||
+    voices[0] ||
+    null;
 }
 
 function speak(text) {
-  if (!("speechSynthesis" in window)) return;
+  if (!("speechSynthesis" in window) || !text) return;
   speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text.replace(/[$*#]/g, ""));
-  const voices = speechSynthesis.getVoices();
-  const preferred = voices.find(v => /zira|samantha|female|google us english/i.test(`${v.name} ${v.voiceURI}`));
-  if (preferred) utterance.voice = preferred;
-  utterance.rate = 1;
+  const utterance = new SpeechSynthesisUtterance(text);
+  if (state.selectedVoice) utterance.voice = state.selectedVoice;
+  utterance.rate = 0.97;
+  utterance.pitch = 1.05;
+  utterance.onstart = () => {
+    $("voiceOrb").classList.add("speaking");
+    $("voiceState").textContent = "Speaking…";
+  };
+  utterance.onend = () => {
+    $("voiceOrb").classList.remove("speaking");
+    $("voiceState").textContent = "Tap the orb and speak";
+  };
   speechSynthesis.speak(utterance);
 }
 
-async function askAtlas(message) {
-  addMessage("user", message);
-  $("atlasReply").textContent = "Atlas is thinking…";
+async function askAssistant(message) {
+  const clean = String(message || "").trim();
+  if (!clean) return;
+
+  addMessage("user", clean);
+  state.conversation.push({ role: "user", content: clean });
+  $("chatInput").value = "";
+  setStatus("Thinking…");
+
+  const marketContext = state.currentMarket
+    ? {
+        symbol: state.currentMarket.symbol,
+        company: state.currentMarket.company,
+        quote: state.currentMarket.quote,
+        metrics: state.currentMarket.metrics,
+      }
+    : null;
+
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, symbol: currentSymbol, history: history.slice(0, -1) })
+      body: JSON.stringify({
+        message: clean,
+        history: state.conversation.slice(-10),
+        marketContext,
+      }),
     });
+
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Request failed.");
+    if (!response.ok) throw new Error(data.error || "Assistant request failed.");
+
     addMessage("assistant", data.reply);
-    $("atlasReply").textContent = data.reply;
-    $("statusText").textContent = "AI ONLINE";
+    state.conversation.push({ role: "assistant", content: data.reply });
+    setStatus("Ready", true);
     speak(data.reply);
   } catch (error) {
-    addMessage("assistant", error.message, true);
-    $("atlasReply").textContent = error.message;
-    $("statusText").textContent = "AI ERROR";
+    const text = `I could not reach the AI service. ${error.message}`;
+    addMessage("assistant", text);
+    setStatus("AI connection error");
   }
 }
 
-function money(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
-}
-
-function valuationData() {
-  const earnings = Number($("earnings").value) * Number($("earningsUnit").value);
-  const shares = Number($("shares").value) * Number($("sharesUnit").value);
-  const growth = Number($("growth").value);
-  return { earnings, shares, growth };
-}
-
-function calculateValuation() {
-  const { earnings, shares, growth } = valuationData();
-  if (!(earnings > 0) || !(shares > 0)) {
-    $("valuationResults").innerHTML = '<div class="result rule">Enter earnings and shares above zero.</div>';
-    return null;
-  }
-  const targets = [20, 30, 40].map(multiple => ({ multiple, price: earnings * multiple / shares }));
-  const ruleMultiple = growth >= 20 ? 30 : 15;
-  const rulePrice = earnings * ruleMultiple / shares;
-  $("valuationResults").innerHTML = targets.map(t => `<div class="result"><small>${t.multiple}× target</small><b>${money(t.price)}</b></div>`).join("") + `<div class="result rule"><small>Automatic rule: ${ruleMultiple}× at ${growth.toFixed(1)}% growth</small><b>${money(rulePrice)}</b></div>`;
-  return { earnings, shares, growth, targets, ruleMultiple, rulePrice };
-}
-
-$("loadSymbol").addEventListener("click", () => renderTradingView($("symbolSelect").value));
-$("symbolSelect").addEventListener("change", () => renderTradingView($("symbolSelect").value));
-$("calculate").addEventListener("click", calculateValuation);
-$("fillShares").addEventListener("click", () => {
-  const sharesM = latestMarketSnapshot?.company?.sharesOutstanding;
-  if (!(sharesM > 0)) {
-    $("atlasReply").textContent = "Finnhub did not return shares outstanding for this symbol.";
+function setupVoiceRecognition() {
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) {
+    $("voiceState").textContent = "Voice input is not supported in this browser";
     return;
   }
-  $("shares").value = sharesM;
-  $("sharesUnit").value = "1000000";
-  calculateValuation();
-  $("atlasReply").textContent = `Loaded ${fmtNumber(sharesM, 2)} million shares outstanding from Finnhub.`;
-});
-$("sendValuation").addEventListener("click", () => {
-  const v = calculateValuation();
-  if (!v) return;
-  const earningsB = v.earnings / 1e9;
-  const sharesB = v.shares / 1e9;
-  askAtlas(`Analyze ${currentSymbol} using my valuation formula. Projected quarterly earnings: ${earningsB.toFixed(3)} billion dollars. Shares outstanding: ${sharesB.toFixed(3)} billion. Earnings growth: ${v.growth}%. Automatic multiple: ${v.ruleMultiple}x. Automatic price target: ${money(v.rulePrice)}. Explain the assumptions and risks.`);
-});
 
-$("chatForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const message = $("chatInput").value.trim();
-  if (!message) return;
-  $("chatInput").value = "";
-  askAtlas(message);
-});
-$("clearChat").addEventListener("click", () => { history.length = 0; $("messages").innerHTML = ""; });
-$("stopVoice").addEventListener("click", () => speechSynthesis?.cancel());
-
-const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition;
-if (Recognition) {
-  recognition = new Recognition();
+  const recognition = new Recognition();
   recognition.lang = "en-US";
   recognition.interimResults = false;
   recognition.continuous = false;
-  recognition.onstart = () => { $("micButton").textContent = "Listening…"; };
-  recognition.onend = () => { $("micButton").textContent = "Start listening"; };
-  recognition.onerror = event => { $("atlasReply").textContent = `Microphone error: ${event.error}`; };
-  recognition.onresult = event => {
-    const message = event.results[0][0].transcript;
-    $("chatInput").value = message;
-    askAtlas(message);
+
+  recognition.onstart = () => {
+    $("voiceOrb").classList.add("listening");
+    $("voiceState").textContent = "Listening…";
   };
-  $("micButton").addEventListener("click", () => recognition.start());
-} else {
-  $("micButton").disabled = true;
-  $("micButton").textContent = "Voice unsupported";
-}
 
-async function pollSignal() {
-  try {
-    const response = await fetch("/api/tradingview");
-    if (!response.ok) return;
-    const data = await response.json();
-    if (data.signal) {
-      const s = data.signal;
-      $("signalStatus").textContent = `${s.symbol || "Signal"} · ${s.timeframe || ""}\n${s.signal || s.message || JSON.stringify(s)}`;
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    $("chatInput").value = text;
+    askAssistant(text);
+  };
+
+  recognition.onerror = (event) => {
+    $("voiceState").textContent =
+      event.error === "not-allowed" ? "Microphone permission is blocked" : "I could not hear that";
+  };
+
+  recognition.onend = () => {
+    $("voiceOrb").classList.remove("listening");
+    if (!$("voiceOrb").classList.contains("speaking")) {
+      $("voiceState").textContent = "Tap the orb and speak";
     }
-  } catch (_) {}
+  };
+
+  state.recognition = recognition;
 }
 
-function animateStars() {
-  const canvas = $("stars");
-  const ctx = canvas.getContext("2d");
-  let stars = [];
-  function resize() {
-    canvas.width = innerWidth * devicePixelRatio;
-    canvas.height = innerHeight * devicePixelRatio;
-    canvas.style.width = `${innerWidth}px`;
-    canvas.style.height = `${innerHeight}px`;
-    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    stars = Array.from({ length: Math.min(130, Math.floor(innerWidth / 8)) }, () => ({ x: Math.random()*innerWidth, y: Math.random()*innerHeight, r: Math.random()*1.4+.2, v: Math.random()*.18+.03 }));
-  }
-  function frame() {
-    ctx.clearRect(0,0,innerWidth,innerHeight);
-    ctx.fillStyle = "rgba(160,255,235,.7)";
-    for (const s of stars) { s.y += s.v; if (s.y > innerHeight) s.y = 0; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); }
-    requestAnimationFrame(frame);
-  }
-  addEventListener("resize", resize); resize(); frame();
-}
+$("chatForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  askAssistant($("chatInput").value);
+});
 
-renderTicker();
-renderTradingView(currentSymbol);
-calculateValuation();
-animateStars();
-addMessage("assistant", "Atlas initialized with Finnhub live prices and fundamentals, TradingView charts and technical analysis, plus your valuation calculator.");
-pollSignal();
-setInterval(pollSignal, 30000);
+$("voiceOrb").addEventListener("click", () => {
+  if (state.recognition) {
+    try {
+      state.recognition.start();
+    } catch {
+      // Recognition is already active.
+    }
+  }
+});
+
+$("loadMarketBtn").addEventListener("click", () => loadMarketData($("marketTicker").value));
+$("marketTicker").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") loadMarketData($("marketTicker").value);
+});
+
+$("loadValuationTickerBtn").addEventListener("click", async () => {
+  try {
+    await loadMarketData($("valuationTicker").value, true);
+  } catch {
+    // Error is shown in the UI.
+  }
+});
+
+$("calculateBtn").addEventListener("click", calculateValuation);
+
+$("loadChartBtn").addEventListener("click", () => {
+  const symbol = $("chartTicker").value.trim().toUpperCase() || "NASDAQ:MU";
+  renderTradingView(symbol);
+});
+
+speechSynthesis.onvoiceschanged = chooseVoice;
+chooseVoice();
+setupVoiceRecognition();
+renderTradingView("NASDAQ:MU");
+addMessage("assistant", "Ready. Load a ticker, ask me a question, or run your valuation.");
+loadMarketData("MU", true).catch(() => {});

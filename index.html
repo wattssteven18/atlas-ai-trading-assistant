@@ -1,134 +1,172 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#02070b" />
-  <title>ATLAS — TradingView Command Center</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#020608" />
+  <title>Steven AI Assistant</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <canvas id="stars" aria-hidden="true"></canvas>
-  <div class="grid" aria-hidden="true"></div>
+  <div class="grid-bg"></div>
 
-  <div class="ticker-shell panel-lite">
-    <div id="tvTicker"></div>
-  </div>
+  <header class="topbar">
+    <h1>Steven AI Assistant</h1>
+    <div id="connectionStatus" class="status-pill">Connecting…</div>
+  </header>
 
-  <main class="shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">AI TRADING ASSISTANT</p>
-        <h1>ATLAS</h1>
+  <main class="app-shell">
+    <section class="ticker-card">
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript"
+          src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"
+          async>
+        {
+          "symbols": [
+            {"proName":"NASDAQ:MU","title":"MU"},
+            {"proName":"NASDAQ:NVDA","title":"NVDA"},
+            {"proName":"NASDAQ:MSTR","title":"MSTR"},
+            {"proName":"NASDAQ:SNDK","title":"SNDK"},
+            {"proName":"COINBASE:BTCUSD","title":"BTC"},
+            {"proName":"COINBASE:SOLUSD","title":"SOL"}
+          ],
+          "showSymbolLogo": true,
+          "isTransparent": true,
+          "displayMode": "adaptive",
+          "colorTheme": "dark",
+          "locale": "en"
+        }
+        </script>
       </div>
-      <div class="status"><span></span><b id="statusText">AI READY</b></div>
-    </header>
+    </section>
 
-    <section class="hero panel">
-      <div class="core-wrap" aria-hidden="true"><div class="core"><div class="core-inner"></div></div></div>
-      <div class="hero-copy">
-        <p class="label">VOICE LINK</p>
-        <h2>Live charts, fundamentals, technical signals, and your valuation engine.</h2>
-        <p id="atlasReply">Atlas is ready. Select a symbol, inspect TradingView, then ask a question.</p>
-        <div class="controls">
-          <button id="micButton" class="primary" type="button">Start listening</button>
-          <button id="stopVoice" class="secondary" type="button">Stop voice</button>
-        </div>
+    <section class="hero-card">
+      <div class="orb-wrap">
+        <button id="voiceOrb" class="voice-orb" aria-label="Talk to Steven AI Assistant">
+          <span class="orb-core"></span>
+        </button>
+        <div id="voiceState" class="voice-state">Tap the orb and speak</div>
       </div>
-    </section>
 
-    <section class="symbol-bar panel">
-      <label for="symbolSelect">Active symbol</label>
-      <select id="symbolSelect">
-        <option value="NASDAQ:MU">MU — Micron</option>
-        <option value="NASDAQ:NVDA">NVDA — NVIDIA</option>
-        <option value="NASDAQ:MSTR">MSTR — Strategy</option>
-        <option value="NASDAQ:SNDK">SNDK — SanDisk</option>
-        <option value="COINBASE:BTCUSD">BTCUSD — Bitcoin</option>
-        <option value="COINBASE:SOLUSD">SOLUSD — Solana</option>
-      </select>
-      <button id="loadSymbol" class="primary" type="button">Load symbol</button>
-      <span id="activeSymbolText" class="mini">NASDAQ:MU</span>
-    </section>
-
-    <section class="market-grid">
-      <section class="panel chart-panel">
-        <div class="section-head"><h3>TradingView Advanced Chart</h3><span class="mini">PRICE + VOLUME</span></div>
-        <div id="tvChart" class="widget-frame tall"></div>
-      </section>
-
-      <aside class="side-stack">
-        <section class="panel finnhub-panel">
-          <div class="section-head"><h3>Live Market Data</h3><span class="mini">FINNHUB</span></div>
-          <div id="finnhubStatus" class="mini">Loading…</div>
-          <div class="quote-primary">
-            <div><small id="companyName">Selected symbol</small><b id="livePrice">—</b></div>
-            <span id="liveChange">—</span>
-          </div>
-          <div class="market-stats">
-            <div><small>Open</small><b id="openPrice">—</b></div>
-            <div><small>Day high</small><b id="dayHigh">—</b></div>
-            <div><small>Day low</small><b id="dayLow">—</b></div>
-            <div><small>Previous close</small><b id="prevClose">—</b></div>
-            <div><small>Market cap</small><b id="marketCap">—</b></div>
-            <div><small>Shares outstanding</small><b id="sharesOutstanding">—</b></div>
-            <div><small>P/E</small><b id="peRatio">—</b></div>
-            <div><small>52-week range</small><b id="weekRange">—</b></div>
-          </div>
-          <button id="fillShares" class="secondary wide" type="button">Use Finnhub shares in valuation</button>
-        </section>
-        <section class="panel">
-          <div class="section-head"><h3>Technical Analysis</h3><span class="mini">RSI · MACD · SMA</span></div>
-          <div id="tvTechnical" class="widget-frame technical"></div>
-        </section>
-      </aside>
-    </section>
-
-    <section class="market-grid lower-grid">
-      <section class="panel fundamentals-panel">
-        <div class="section-head"><h3>Company Fundamentals</h3><span class="mini">TRADINGVIEW + FINNHUB</span></div>
-        <div id="tvFundamentals" class="widget-frame fundamentals"></div>
-      </section>
-
-      <aside class="side-stack">
-        <section class="panel calculator-panel">
-          <div class="section-head"><h3>Atlas Valuation</h3><span class="mini">YOUR FORMULA</span></div>
-          <label>Projected quarterly earnings
-            <div class="input-row"><input id="earnings" type="number" step="any" value="82.828" /><select id="earningsUnit"><option value="1000000000">B</option><option value="1000000">M</option></select></div>
-          </label>
-          <label>Shares outstanding
-            <div class="input-row"><input id="shares" type="number" step="any" value="1.13" /><select id="sharesUnit"><option value="1000000000">B</option><option value="1000000">M</option></select></div>
-          </label>
-          <label>Earnings growth %<input id="growth" type="number" step="any" value="32.8" /></label>
-          <button id="calculate" class="primary wide" type="button">Calculate targets</button>
-          <button id="sendValuation" class="secondary wide" type="button">Ask Atlas to analyze</button>
-          <div id="valuationResults" class="results"></div>
-        </section>
-      </aside>
-    </section>
-
-    <section class="layout">
-      <section class="panel chat-panel">
-        <div class="section-head"><h3>Command Center</h3><button id="clearChat" class="text-button">Clear</button></div>
-        <div id="messages" class="messages" aria-live="polite"></div>
+      <div class="chat-panel">
+        <div id="chatLog" class="chat-log" aria-live="polite"></div>
         <form id="chatForm" class="chat-form">
-          <input id="chatInput" autocomplete="off" placeholder="Ask Atlas about this symbol…" />
+          <input id="chatInput" autocomplete="off" placeholder="Ask about a stock, price, chart, or valuation…" />
           <button type="submit">Send</button>
         </form>
-      </section>
-
-      <aside class="side-stack">
-        <section class="panel signal-panel">
-          <div class="section-head"><h3>TradingView Signals</h3><span class="mini">WEBHOOK READY</span></div>
-          <div id="signalStatus" class="signal-box">No webhook signal received in this browser session.</div>
-          <p class="help">Pine Script is included in the ZIP. Create a TradingView alert and send it to <code>/api/tradingview</code>.</p>
-        </section>
-      </aside>
+      </div>
     </section>
 
-    <footer>Research tool only — not financial advice. Finnhub and TradingView data may be delayed or unavailable depending on the symbol, exchange, and plan.</footer>
+    <section class="content-grid">
+      <article class="panel market-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Live Market Data</h2>
+            <p>Finnhub quote and company data</p>
+          </div>
+          <div class="symbol-loader">
+            <input id="marketTicker" value="MU" maxlength="12" aria-label="Ticker symbol" />
+            <button id="loadMarketBtn" type="button">Load</button>
+          </div>
+        </div>
+
+        <div id="marketError" class="inline-error hidden"></div>
+
+        <div class="market-stats">
+          <div class="stat"><span>Company</span><strong id="companyName">—</strong></div>
+          <div class="stat"><span>Price</span><strong id="currentPrice">—</strong></div>
+          <div class="stat"><span>Daily change</span><strong id="dailyChange">—</strong></div>
+          <div class="stat"><span>Shares outstanding</span><strong id="sharesOutstandingDisplay">—</strong></div>
+          <div class="stat"><span>Market cap</span><strong id="marketCap">—</strong></div>
+          <div class="stat"><span>52-week range</span><strong id="weekRange">—</strong></div>
+        </div>
+      </article>
+
+      <article class="panel valuation-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Atlas Valuation</h2>
+            <p>Ticker automatically loads shares outstanding</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Ticker
+            <div class="ticker-inline">
+              <input id="valuationTicker" value="MU" maxlength="12" />
+              <button id="loadValuationTickerBtn" type="button">Find shares</button>
+            </div>
+          </label>
+
+          <label>
+            Estimated quarterly earnings
+            <div class="number-unit">
+              <input id="earningsEstimate" type="number" min="0" step="any" placeholder="82.828" />
+              <select id="earningsUnit">
+                <option value="1000000000">Billion</option>
+                <option value="1000000">Million</option>
+              </select>
+            </div>
+          </label>
+
+          <label>
+            Earnings growth %
+            <input id="growthRate" type="number" step="any" placeholder="32.8" />
+          </label>
+
+          <label>
+            Shares outstanding
+            <div class="number-unit">
+              <input id="sharesOutstanding" type="number" min="0" step="any" placeholder="Auto-filled" />
+              <select id="sharesUnit">
+                <option value="1000000000">Billion</option>
+                <option value="1000000">Million</option>
+              </select>
+            </div>
+          </label>
+
+          <label>
+            Multiple
+            <select id="multipleMode">
+              <option value="auto">Auto: 30× at 20%+ growth, otherwise 15×</option>
+              <option value="15">15×</option>
+              <option value="20">20×</option>
+              <option value="30">30×</option>
+              <option value="40">40×</option>
+            </select>
+          </label>
+
+          <button id="calculateBtn" class="calculate-btn" type="button">Calculate target</button>
+        </div>
+
+        <div id="valuationMessage" class="inline-error hidden"></div>
+
+        <div class="valuation-result">
+          <div><span>Current price</span><strong id="valuationCurrentPrice">—</strong></div>
+          <div><span>Multiple used</span><strong id="multipleUsed">—</strong></div>
+          <div><span>Atlas target</span><strong id="targetPrice">—</strong></div>
+          <div><span>Upside / downside</span><strong id="upsideDownside">—</strong></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel chart-panel">
+      <div class="panel-head chart-head">
+        <div>
+          <h2>TradingView Chart</h2>
+          <p>Chart with RSI, MACD, and SMA indicators available</p>
+        </div>
+        <div class="symbol-loader">
+          <input id="chartTicker" value="NASDAQ:MU" aria-label="TradingView symbol" />
+          <button id="loadChartBtn" type="button">Open chart</button>
+        </div>
+      </div>
+      <div id="tradingViewChart" class="chart-frame"></div>
+    </section>
   </main>
 
-  <script src="script.js"></script>
+  <script src="/script.js"></script>
 </body>
 </html>

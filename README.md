@@ -1,34 +1,57 @@
-# Atlas — Finnhub + TradingView Upgrade
+# Steven AI Assistant
 
-This version combines:
+A Vercel-ready personal trading assistant with:
 
-- Finnhub live quotes and company data
-- TradingView charts, financial panels, and technical-analysis widgets
-- RSI, MACD, SMA 20/50/200 Pine Script alerts
-- Atlas voice chat through the OpenAI API
-- Steven's valuation formula and 20x/30x/40x scenarios
+- Finnhub live stock quotes
+- Automatic shares-outstanding lookup
+- Atlas valuation formula
+- TradingView chart and ticker tape
+- RSI, MACD, and SMA chart studies
+- OpenAI chat
+- Browser speech recognition and spoken replies
 
-## Vercel environment variables
+## Required Vercel environment variables
 
-Add these in Vercel → Project → Settings → Environment Variables:
+Add these in **Vercel → Project → Settings → Environment Variables**:
 
-- `OPENAI_API_KEY`
-- `FINNHUB_API_KEY`
-- `OPENAI_MODEL` (optional, defaults to `gpt-5-mini`)
-- `TRADINGVIEW_WEBHOOK_SECRET` (optional until alerts are configured)
+```text
+OPENAI_API_KEY=your_openai_key
+FINNHUB_API_KEY=your_finnhub_key
+```
 
-Never put API keys in `index.html`, `script.js`, or GitHub.
+Apply them to Production, Preview, and Development, then redeploy.
 
 ## Upload to GitHub
 
-Extract the ZIP and upload the contents of this folder to the repository root. The repository root should directly contain `index.html`, `script.js`, `style.css`, `api`, `lib`, and the other project files.
+Upload the contents of this folder to the root of your existing repository:
 
-Commit the upload and wait for Vercel to redeploy.
+```text
+api/
+index.html
+style.css
+script.js
+package.json
+vercel.json
+README.md
+```
 
-## How it works
+Do not upload `.env` or place API keys in GitHub.
 
-`/api/market` calls Finnhub securely from Vercel and returns the latest quote, profile, and available basic metrics. The browser refreshes market data when a symbol is selected.
+## Valuation formula
 
-`/api/chat` also pulls the latest Finnhub snapshot before sending the question to Atlas, allowing Atlas to discuss the current quote and available fundamentals without exposing the Finnhub key.
+Automatic mode:
 
-The free Finnhub plan may not provide every metric or every market in real time. Missing fields appear as a dash instead of being invented.
+- Growth >= 20%: quarterly estimated earnings × 30 ÷ shares outstanding
+- Growth < 20%: quarterly estimated earnings × 15 ÷ shares outstanding
+
+Manual modes: 15×, 20×, 30×, and 40×.
+
+## Important shares-outstanding note
+
+Finnhub's `shareOutstanding` company-profile field is reported in millions of shares.
+The server converts it to billions before filling the calculator.
+
+## Voice
+
+Chrome may require microphone permission and a user tap before audio can play.
+Tap the glowing orb to speak.
