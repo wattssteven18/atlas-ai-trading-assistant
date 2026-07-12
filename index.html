@@ -1,243 +1,438 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
   <title>Atlas AI</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --glow: #20f6c7;
+      --glow-soft: rgba(32, 246, 199, 0.25);
+      --text-soft: #8b9aaa;
+      --panel: rgba(8, 15, 22, 0.88);
+    }
+
+    html,
     body {
-      background: #07111f;
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: #000;
       color: white;
-      font-family: Arial, sans-serif;
-      padding: 25px;
+      font-family: Arial, Helvetica, sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(
+          circle at 50% 32%,
+          rgba(0, 92, 78, 0.24),
+          transparent 28%
+        ),
+        radial-gradient(
+          circle at 50% 70%,
+          rgba(0, 45, 70, 0.18),
+          transparent 35%
+        ),
+        #000;
+    }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.45;
+      background-image:
+        radial-gradient(circle, white 1px, transparent 1px),
+        radial-gradient(circle, #20f6c7 1px, transparent 1px);
+      background-size: 75px 75px, 120px 120px;
+      background-position: 0 0, 30px 40px;
+      animation: drift 24s linear infinite;
+    }
+
+    @keyframes drift {
+      from {
+        transform: translateY(0);
+      }
+
+      to {
+        transform: translateY(75px);
+      }
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: min(760px, 94%);
+      min-height: 100vh;
+      margin: auto;
+      padding:
+        max(22px, env(safe-area-inset-top))
+        0
+        max(28px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .topbar {
+      width: 100%;
       text-align: center;
+      margin-bottom: 18px;
     }
 
-    button,
-    input {
-      padding: 14px;
-      margin: 8px;
-      border-radius: 10px;
-      border: none;
-      font-size: 16px;
+    .brand {
+      margin: 0;
+      font-size: clamp(30px, 7vw, 54px);
+      letter-spacing: 12px;
+      color: white;
+      text-shadow:
+        0 0 12px rgba(255, 255, 255, 0.45),
+        0 0 28px rgba(32, 246, 199, 0.5);
     }
 
-    button {
-      background: #20c997;
-      color: black;
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--text-soft);
+      letter-spacing: 2px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .core-area {
+      position: relative;
+      width: 330px;
+      height: 330px;
+      display: grid;
+      place-items: center;
+      margin-top: 14px;
+    }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(32, 246, 199, 0.32);
+      box-shadow:
+        0 0 18px rgba(32, 246, 199, 0.12),
+        inset 0 0 18px rgba(32, 246, 199, 0.08);
+    }
+
+    .ring-one {
+      width: 300px;
+      height: 300px;
+      animation: rotateClockwise 14s linear infinite;
+    }
+
+    .ring-two {
+      width: 250px;
+      height: 250px;
+      border-style: dashed;
+      animation: rotateCounter 9s linear infinite;
+    }
+
+    .ring-three {
+      width: 205px;
+      height: 205px;
+      animation: pulseRing 2.8s ease-in-out infinite;
+    }
+
+    .ring-one::before,
+    .ring-one::after,
+    .ring-two::before,
+    .ring-two::after {
+      content: "";
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--glow);
+      box-shadow: 0 0 16px var(--glow);
+    }
+
+    .ring-one::before {
+      top: -5px;
+      left: 50%;
+    }
+
+    .ring-one::after {
+      bottom: -5px;
+      left: 50%;
+    }
+
+    .ring-two::before {
+      left: -5px;
+      top: 50%;
+    }
+
+    .ring-two::after {
+      right: -5px;
+      top: 50%;
+    }
+
+    @keyframes rotateClockwise {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes rotateCounter {
+      to {
+        transform: rotate(-360deg);
+      }
+    }
+
+    @keyframes pulseRing {
+      0%,
+      100% {
+        transform: scale(0.96);
+        opacity: 0.45;
+      }
+
+      50% {
+        transform: scale(1.05);
+        opacity: 1;
+      }
+    }
+
+    .orb {
+      position: relative;
+      z-index: 3;
+      width: 145px;
+      height: 145px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(
+          circle at 35% 30%,
+          #eafffa 0%,
+          #4fffd8 10%,
+          #0f9d84 34%,
+          #052c2a 62%,
+          #000 100%
+        );
+      box-shadow:
+        0 0 25px rgba(32, 246, 199, 0.9),
+        0 0 70px rgba(32, 246, 199, 0.45),
+        inset 0 0 35px rgba(255, 255, 255, 0.25);
+      transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease,
+        filter 0.3s ease;
+      animation: idleOrb 3.2s ease-in-out infinite;
+    }
+
+    .orb::after {
+      content: "";
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.65);
+      box-shadow:
+        0 0 18px white,
+        inset 0 0 15px rgba(255, 255, 255, 0.4);
+    }
+
+    @keyframes idleOrb {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.04);
+      }
+    }
+
+    body.listening .orb {
+      animation: listeningOrb 0.9s ease-in-out infinite;
+      box-shadow:
+        0 0 30px rgba(32, 246, 199, 1),
+        0 0 100px rgba(32, 246, 199, 0.7);
+    }
+
+    body.thinking .orb {
+      animation: thinkingOrb 0.55s linear infinite;
+      filter: hue-rotate(35deg);
+    }
+
+    body.speaking .orb {
+      animation: speakingOrb 0.45s ease-in-out infinite;
+    }
+
+    @keyframes listeningOrb {
+      0%,
+      100% {
+        transform: scale(0.98);
+      }
+
+      50% {
+        transform: scale(1.11);
+      }
+    }
+
+    @keyframes thinkingOrb {
+      to {
+        transform: rotate(360deg) scale(1.04);
+      }
+    }
+
+    @keyframes speakingOrb {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.14);
+      }
+    }
+
+    .ticker-orbit {
+      position: absolute;
+      inset: 0;
+      animation: rotateClockwise 28s linear infinite;
+    }
+
+    .ticker {
+      position: absolute;
+      padding: 6px 9px;
+      border: 1px solid rgba(32, 246, 199, 0.24);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #b9fff0;
+      font-size: 11px;
       font-weight: bold;
-      cursor: pointer;
+      letter-spacing: 1px;
+      box-shadow: 0 0 12px rgba(32, 246, 199, 0.12);
     }
 
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .ticker span {
+      display: block;
+      animation: rotateCounter 28s linear infinite;
     }
 
-    input {
-      width: 80%;
-      max-width: 650px;
+    .t1 {
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
     }
 
-    #chat {
-      background: #101d2d;
-      padding: 15px;
-      border-radius: 12px;
-      min-height: 180px;
-      text-align: left;
-      margin: 20px auto 0;
-      max-width: 750px;
-      overflow-wrap: anywhere;
+    .t2 {
+      right: 8px;
+      top: 25%;
     }
-  </style>
-</head>
 
-<body>
+    .t3 {
+      right: 4px;
+      bottom: 24%;
+    }
 
-  <h1>ATLAS AI</h1>
-  <p>Steven's Personal Trading Assistant</p>
+    .t4 {
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
 
-  <button onclick="speakWelcome()">🔊 Hear Atlas</button>
-  <button onclick="listen()">🎙️ Talk to Atlas</button>
+    .t5 {
+      left: 5px;
+      bottom: 24%;
+    }
 
-  <br>
+    .t6 {
+      left: 7px;
+      top: 25%;
+    }
 
-  <input
-    id="question"
-    placeholder="Ask Atlas something"
-    onkeydown="handleEnter(event)"
-  >
+    .status {
+      min-height: 34px;
+      margin-top: 4px;
+      color: var(--glow);
+      font-weight: bold;
+      font-size: 15px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px var(--glow-soft);
+    }
 
-  <button id="sendButton" onclick="askAtlas()">Send</button>
+    .wave {
+      width: 180px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      margin-bottom: 13px;
+      opacity: 0.25;
+    }
 
-  <div id="chat">
-    <p><b>Atlas:</b> Hello Steven. I am online and ready.</p>
-  </div>
+    .wave span {
+      width: 3px;
+      height: 7px;
+      border-radius: 4px;
+      background: var(--glow);
+      box-shadow: 0 0 8px var(--glow);
+    }
 
-  <script>
-    function speak(text) {
-      window.speechSynthesis.cancel();
+    body.listening .wave,
+    body.speaking .wave {
+      opacity: 1;
+    }
 
-      const speech = new SpeechSynthesisUtterance(text);
-      speech.rate = 0.9;
-      speech.pitch = 1.1;
+    body.listening .wave span,
+    body.speaking .wave span {
+      animation: waveMove 0.8s ease-in-out infinite;
+    }
 
-      const voices = window.speechSynthesis.getVoices();
+    .wave span:nth-child(2) {
+      animation-delay: 0.1s;
+    }
 
-      const femaleVoice = voices.find(function(voice) {
-        const name = voice.name.toLowerCase();
+    .wave span:nth-child(3) {
+      animation-delay: 0.2s;
+    }
 
-        return (
-          name.includes("female") ||
-          name.includes("samantha") ||
-          name.includes("zira") ||
-          name.includes("victoria") ||
-          name.includes("google us english")
-        );
-      });
+    .wave span:nth-child(4) {
+      animation-delay: 0.3s;
+    }
 
-      if (femaleVoice) {
-        speech.voice = femaleVoice;
+    .wave span:nth-child(5) {
+      animation-delay: 0.4s;
+    }
+
+    .wave span:nth-child(6) {
+      animation-delay: 0.3s;
+    }
+
+    .wave span:nth-child(7) {
+      animation-delay: 0.2s;
+    }
+
+    .wave span:nth-child(8) {
+      animation-delay: 0.1s;
+    }
+
+    @keyframes waveMove {
+      0%,
+      100% {
+        height: 7px;
       }
 
-      window.speechSynthesis.speak(speech);
-    }
-
-    function speakWelcome() {
-      const text =
-        "Hello Steven. Atlas is online and ready to analyze your watchlist.";
-
-      addMessage("Atlas", text);
-      speak(text);
-    }
-
-    async function askAtlas() {
-      const input = document.getElementById("question");
-      const sendButton = document.getElementById("sendButton");
-      const question = input.value.trim();
-
-      if (!question) {
-        return;
-      }
-
-      addMessage("Steven", question);
-
-      input.value = "";
-      sendButton.disabled = true;
-
-      const thinkingMessage = addMessage("Atlas", "Thinking...");
-
-      try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            message: question
-          })
-        });
-
-        let data;
-
-        try {
-          data = await response.json();
-        } catch {
-          throw new Error("The server returned an invalid response.");
-        }
-
-        thinkingMessage.remove();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error ||
-            data.details ||
-            "Atlas could not connect."
-          );
-        }
-
-        const reply =
-          data.reply ||
-          "I did not receive a response from my AI brain.";
-
-        addMessage("Atlas", reply);
-        speak(reply);
-
-      } catch (error) {
-        if (thinkingMessage.isConnected) {
-          thinkingMessage.remove();
-        }
-
-        const errorMessage =
-          "I could not connect to my AI brain. Please check the connection and try again.";
-
-        addMessage("Atlas", errorMessage);
-        speak(errorMessage);
-
-        console.error("Atlas error:", error);
-
-      } finally {
-        sendButton.disabled = false;
-        input.focus();
+      50% {
+        height: 30px;
       }
     }
 
-    function addMessage(name, text) {
-      const chat = document.getElementById("chat");
-      const paragraph = document.createElement("p");
-      const label = document.createElement("b");
-
-      label.textContent = name + ": ";
-      paragraph.appendChild(label);
-      paragraph.appendChild(document.createTextNode(text));
-
-      chat.appendChild(paragraph);
-      chat.scrollTop = chat.scrollHeight;
-
-      return paragraph;
-    }
-
-    function listen() {
-      const Recognition =
-        window.SpeechRecognition ||
-        window.webkitSpeechRecognition;
-
-      if (!Recognition) {
-        alert("Voice recognition is not supported in this browser.");
-        return;
-      }
-
-      const recognition = new Recognition();
-
-      recognition.lang = "en-US";
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onresult = function(event) {
-        const transcript =
-          event.results[0][0].transcript;
-
-        document.getElementById("question").value = transcript;
-        askAtlas();
-      };
-
-      recognition.onerror = function(event) {
-        console.error("Voice recognition error:", event.error);
-
-        alert(
-          "Atlas could not hear you. Please allow microphone access and try again."
-        );
-      };
-
-      recognition.start();
-    }
-
-    function handleEnter(event) {
-      if (event.key === "Enter") {
-        askAtlas();
-      }
-    }
-  </script>
-
-</body>
-</html>
+  
